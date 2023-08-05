@@ -10,4 +10,5 @@ terminalpp-cert.zip
 snapcraft-credentials
 compile_commands.json
 .cache
+.clangd
 
