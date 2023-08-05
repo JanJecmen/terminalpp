@@ -1,9 +1,9 @@
 # terminalpp application
 # ======================
 #
-cmake_minimum_required (VERSION 3.5)
+cmake_minimum_required (VERSION 3.16)
 
-project(terminalpp VERSION ${TPP_VERSION})
+project(terminalpp VERSION ${TPP_VERSION} LANGUAGES CXX)
 
 # the list of libraries to link the executable with
 set(TPP_LINK_LIBRARIES libuiterminal libtpp libui)
@@ -16,15 +16,42 @@ if(RENDERER_NATIVE)
     if(ARCH_MACOS)
         message(FATAL_ERROR "Native renderer not supported on macOS")
     elseif(ARCH_UNIX)
-        find_package(X11 REQUIRED)
-        find_package(Freetype REQUIRED)
-        include_directories(${X11_INCLUDE_DIR})
-        include_directories(${FREETYPE_INCLUDE_DIRS})
-        if (NOT X11_Xft_FOUND)
-            message(FATAL_ERROR "xft not found - please install libxft-dev")
+        if(NOT USE_WAYLAND)
+            find_package(X11 REQUIRED)
+            find_package(Freetype REQUIRED)
+            include_directories(${X11_INCLUDE_DIR})
+            include_directories(${FREETYPE_INCLUDE_DIRS})
+            if (NOT X11_Xft_FOUND)
+                message(FATAL_ERROR "xft not found - please install libxft-dev")
+            endif()
+            # link with the required libraries
+            list(APPEND TPP_LINK_LIBRARIES ${X11_LIBRARIES} ${X11_Xft_LIB} ${X11_Xrender_LIB} ${X11_Xcursor_LIB} ${FREETYPE_LIBRARIES} fontconfig)
+        else()
+            set(WAYLAND_MIN_VERSION "1.19.0")
+            set(WAYLAND_PROTOCOLS_MIN_VERSION "1.21")
+            find_package(ECM REQUIRED)
+            ecm_use_find_modules(
+                DIR ${CMAKE_BINARY_DIR}/cmake
+                MODULES FindWayland.cmake FindWaylandProtocols.cmake FindWaylandScanner.cmake
+                NO_OVERRIDE
+            )
+            set(CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR}/cmake)
+            find_package(Wayland ${WAYLAND_MIN_VERSION} REQUIRED COMPONENTS
+                Client
+                # Cursor
+                # Egl
+            )
+            find_package(WaylandProtocols ${WAYLAND_PROTOCOLS_MIN_VERSION} REQUIRED)
+            find_package(WaylandScanner REQUIRED)
+            ecm_add_wayland_client_protocol(WAYLAND_PROTOCOL_SOURCES
+                PROTOCOL "${WaylandProtocols_DATADIR}/stable/xdg-shell/xdg-shell.xml"
+                BASENAME "xdg-shell")
+            find_package(Freetype REQUIRED)
+            include_directories(${Wayland_INCLUDE_DIRS})
+            include_directories(${CMAKE_BINARY_DIR}/terminalpp)
+            include_directories(${FREETYPE_INCLUDE_DIRS})
+            list(APPEND TPP_LINK_LIBRARIES ${Wayland_LIBRARIES} ${FREETYPE_LIBRARIES} fontconfig)
         endif()
-        # link with the required libraries
-        list(APPEND TPP_LINK_LIBRARIES ${X11_LIBRARIES} ${X11_Xft_LIB} ${X11_Xrender_LIB} ${X11_Xcursor_LIB} ${FREETYPE_LIBRARIES} fontconfig)
     endif()
 # For the QT renderer, the Qt Installation must be found. This works out of the box on Linux, but Windows and macOS need some extra information. For windows, the version 5.14.1 and location C:\Qt is hardcoded, which macOS assumes that Qt was installed using brew. 
 # On Windows shared QT libraries must be deployed together with the executable so the windeployqt exacutable must be found. 
@@ -103,7 +130,12 @@ elseif(ARCH_MACOS)
     endif()
 elseif(ARCH_UNIX)
     if(RENDERER_NATIVE)
-        add_executable(terminalpp ${SRC})
+        if(NOT USE_WAYLAND)
+            add_executable(terminalpp ${SRC})
+        else()
+            add_executable(terminalpp ${SRC} ${WAYLAND_PROTOCOL_SOURCES})
+            target_compile_options(terminalpp PRIVATE ${Wayland_DEFINITIONS})
+        endif()
     elseif(RENDERER_QT)
         add_executable(terminalpp ${SRC} "qt/terminalpp.qrc")
     endif()

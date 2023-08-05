@@ -2,7 +2,7 @@
 
 # This is the global configuration file for terminalpp. It is a bit complex as it handles all platforms and configurations as well as the possible subprojects for given platforms (bypass, ropen, etc.)
 
-cmake_minimum_required (VERSION 3.5)
+cmake_minimum_required (VERSION 3.16)
 
 if(${CMAKE_VERSION} VERSION_GREATER "3.14")
     cmake_policy(SET CMP0091 NEW)
@@ -88,6 +88,20 @@ if(ARCH_WINDOWS)
     message(STATUS "MSVC Runtime will be linked statically")    
 endif()
 
+if(ARCH_UNIX)
+    if(NOT USE_WAYLAND)
+        set(DISPLAY X11)
+        set(DISPLAY_X11 true)
+        add_definitions(-DDISPLAY_X11)
+    else()
+        set(DISPLAY WAYLAND)
+        set(DISPLAY_WAYLAND true)
+        add_definitions(-DDISPLAY_WAYLAND)
+    endif()
+    message(STATUS "Display server: ${DISPLAY}")    
+endif()
+
+
 # by this all subprojects are addressabe from the source root
 include_directories(${CMAKE_SOURCE_DIR})
 
@@ -106,3 +120,4 @@ add_subdirectory("tests")
 add_subdirectory("terminalpp")
 add_subdirectory("tools")
 add_subdirectory("packages")
+
