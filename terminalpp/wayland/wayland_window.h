@@ -1,5 +1,4 @@
 #pragma once
-#include "helpers/helpers.h"
 #if (defined ARCH_UNIX && defined RENDERER_NATIVE && defined DISPLAY_WAYLAND)
 
 #include "wayland.h"

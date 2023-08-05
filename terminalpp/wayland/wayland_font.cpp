@@ -1,4 +1,5 @@
 #if (defined ARCH_LINUX && defined RENDERER_NATIVE && defined DISPLAY_WAYLAND)
+
 #include <cmath>
 
 #include "wayland_font.h"
