@@ -1,4 +1,4 @@
-#if (defined ARCH_LINUX && defined RENDERER_NATIVE)
+#if (defined ARCH_LINUX && defined RENDERER_NATIVE && defined DISPLAY_X11)
 #include <cmath>
 
 #include "x11_font.h"

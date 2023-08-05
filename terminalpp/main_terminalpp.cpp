@@ -21,10 +21,23 @@
 
 #elif (defined ARCH_UNIX && defined RENDERER_NATIVE)
 
+#if (defined DISPLAY_X11)
+
 #include "x11/x11_application.h"
 #include "x11/x11_window.h"
 
 #define APPLICATION_CLASS X11Application
+
+#elif (defined DISPLAY_WAYLAND)
+
+#include "wayland/wayland_application.h"
+#include "wayland/wayland_window.h"
+
+#define APPLICATION_CLASS WaylandApplication
+
+#else
+#error "Unsupported display server"
+#endif
 
 #elif (defined RENDERER_QT)
 

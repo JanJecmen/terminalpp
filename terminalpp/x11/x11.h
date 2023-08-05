@@ -1,5 +1,5 @@
 #pragma once
-#if (defined ARCH_UNIX && defined RENDERER_NATIVE)
+#if (defined ARCH_UNIX && defined RENDERER_NATIVE && defined DISPLAY_X11)
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
