@@ -70,11 +70,15 @@ class WaylandApplication : public Application {
     void mainLoop() override;
 
   private:
+    friend class WaylandFont;
     friend class WaylandWindow;
 
     class TerminateException {};
 
     WaylandApplication();
+
+    struct wl_display* display_{nullptr};
+    struct wl_registry* registry_{nullptr};
 
     std::atomic<bool> mainLoopRunning_;
 

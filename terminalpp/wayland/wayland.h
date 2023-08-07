@@ -1,7 +1,6 @@
 #pragma once
 #if (defined ARCH_UNIX && defined RENDERER_NATIVE && defined DISPLAY_WAYLAND)
 
-#include <wayland-client-protocol.h>
 #include <wayland-client.h>
 
 #include "wayland-xdg-shell-client-protocol.h"
@@ -10,7 +9,7 @@
 
 namespace wayland {
 
-typedef size_t Window;
+using Window = size_t;
 
 } // namespace wayland
 
