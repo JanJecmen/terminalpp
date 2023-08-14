@@ -38,3 +38,4 @@ How to support both wayland and x11?
 
 ## Sources
 
+- [example of c++ wayland client organization](https://gitlab.freedesktop.org/libdecor/libdecor/-/blob/master/demo/c%2B%2B-demo.cc)
