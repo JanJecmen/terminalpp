@@ -3,6 +3,7 @@
 
 #include <wayland-client.h>
 
+#include "wayland-xdg-decoration-client-protocol.h"
 #include "wayland-xdg-shell-client-protocol.h"
 
 #include <fontconfig/fontconfig.h>

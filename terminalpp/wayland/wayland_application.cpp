@@ -1,4 +1,3 @@
-#include <cstdint>
 #if (defined ARCH_UNIX && defined RENDERER_NATIVE && defined DISPLAY_WAYLAND)
 
 #include <linux/input-event-codes.h>
@@ -37,10 +36,14 @@ struct wl_keyboard* keyboard_{nullptr};
 struct wl_pointer* pointer_{nullptr};
 struct wl_buffer* buffer_{nullptr};
 
+struct zxdg_decoration_manager_v1* decoration_manager_{nullptr};
+struct zxdg_toplevel_decoration_v1* toplevel_decoration_{nullptr};
+enum zxdg_toplevel_decoration_v1_mode client_preferred_mode_, current_mode_;
+
 uint8_t* shm_data{nullptr};
-size_t width_ = 200;
-size_t height_ = 100;
-uint8_t alpha_ = 0xaa;
+size_t width_ = 600;
+size_t height_ = 400;
+uint8_t alpha_ = 0xdd;
 
 /**
  * Boilerplate to create an in-memory shared file.
@@ -91,6 +94,31 @@ int create_shm_file(off_t size) {
     return fd;
 }
 
+const char* get_mode_name(enum zxdg_toplevel_decoration_v1_mode mode) {
+    switch (mode) {
+    case ZXDG_TOPLEVEL_DECORATION_V1_MODE_CLIENT_SIDE:
+        return "client-side decorations";
+    case ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE:
+        return "server-side decorations";
+    default:
+        UNREACHABLE;
+    }
+}
+
+void request_preferred_mode(void) {
+    enum zxdg_toplevel_decoration_v1_mode mode = client_preferred_mode_;
+    if (mode == 0) {
+        std::cout << "Requesting compositor preferred mode\n";
+        zxdg_toplevel_decoration_v1_unset_mode(toplevel_decoration_);
+        return;
+    }
+    if (mode == current_mode_) {
+        return;
+    }
+    std::cout << "Requesting " << get_mode_name(mode) << "\n";
+    zxdg_toplevel_decoration_v1_set_mode(toplevel_decoration_, mode);
+}
+
 void get_color(size_t row, size_t col, uint8_t* r, uint8_t* g, uint8_t* b,
                uint8_t* a) {
     if (shm_data) {
@@ -122,6 +150,10 @@ void draw() {
             uint8_t a = alpha_;
             set_color(y, x, r, g, b, a);
         }
+    }
+
+    if (current_mode_ == ZXDG_TOPLEVEL_DECORATION_V1_MODE_CLIENT_SIDE) {
+        // TODO
     }
 
     // Corner marks
@@ -156,10 +188,6 @@ void create_buffer() {
         return;
     }
 
-    // TODO: should unmap??
-    // if (shm_data) {
-    //     munmap(shm_data, size);
-    // }
     shm_data =
         (uint8_t*)mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (shm_data == MAP_FAILED) {
@@ -169,9 +197,6 @@ void create_buffer() {
     }
 
     struct wl_shm_pool* pool = wl_shm_create_pool(shm_, fd, size);
-    if (buffer_) {
-        wl_buffer_destroy(buffer_);
-    }
     buffer_ = wl_shm_pool_create_buffer(pool, 0, width_, height_, stride,
                                         WL_SHM_FORMAT_ARGB8888);
     wl_shm_pool_destroy(pool);
@@ -199,6 +224,10 @@ void toplevel_listener_configure_bounds(void* data,
 void toplevel_listener_wm_capabilities(void* data,
                                        struct xdg_toplevel* xdg_toplevel,
                                        struct wl_array* capabilities);
+
+void toplevel_decoration_v1_listener_configure(
+    void* data, struct zxdg_toplevel_decoration_v1* zxdg_toplevel_decoration_v1,
+    uint32_t mode);
 
 void keyboard_listener_keymap(void* data, struct wl_keyboard* wl_keyboard,
                               uint32_t format, int32_t fd, uint32_t size);
@@ -276,6 +305,11 @@ const struct xdg_toplevel_listener toplevel_listener_ = {
     .wm_capabilities = toplevel_listener_wm_capabilities,
 };
 
+const struct zxdg_toplevel_decoration_v1_listener
+    toplevel_decoration_v1_listener_ = {
+        .configure = toplevel_decoration_v1_listener_configure,
+};
+
 const struct wl_keyboard_listener keyboard_listener_ = {
     .keymap = keyboard_listener_keymap,
     .enter = keyboard_listener_enter,
@@ -345,10 +379,13 @@ void toplevel_listener_configure(void* data, struct xdg_toplevel* xdg_toplevel,
     MARK_AS_UNUSED(data);
     MARK_AS_UNUSED(xdg_toplevel);
     MARK_AS_UNUSED(states);
-    if (width == 0 || height == 0) {
+    std::cout << "Resizing: " << width_ << "x" << height_ << " -> " << width
+              << "x" << height << "\n";
+    if (width == 0 && height == 0) {
         return;
     }
     if (width_ != (size_t)width || height_ != (size_t)height) {
+        munmap(shm_data, 4 * width_ * height_);
         width_ = (size_t)width;
         height_ = (size_t)height;
         create_buffer();
@@ -376,6 +413,17 @@ void toplevel_listener_wm_capabilities(void* data,
     MARK_AS_UNUSED(data);
     MARK_AS_UNUSED(xdg_toplevel);
     MARK_AS_UNUSED(capabilities);
+}
+
+void toplevel_decoration_v1_listener_configure(
+    void* data, struct zxdg_toplevel_decoration_v1* zxdg_toplevel_decoration_v1,
+    uint32_t mode) {
+    MARK_AS_UNUSED(data);
+    MARK_AS_UNUSED(zxdg_toplevel_decoration_v1);
+    enum zxdg_toplevel_decoration_v1_mode m =
+        static_cast<enum zxdg_toplevel_decoration_v1_mode>(mode);
+    std::cout << "Using " << get_mode_name(m) << "\n";
+    current_mode_ = m;
 }
 
 void keyboard_listener_keymap(void* data, struct wl_keyboard* wl_keyboard,
@@ -569,6 +617,10 @@ void registry_listener_global(void* data, struct wl_registry* wl_registry,
         wm_base_ = static_cast<struct xdg_wm_base*>(
             wl_registry_bind(wl_registry, name, &xdg_wm_base_interface, 1));
         xdg_wm_base_add_listener(wm_base_, &wm_base_listener_, nullptr);
+    } else if (!strcmp(interface, zxdg_decoration_manager_v1_interface.name)) {
+        decoration_manager_ =
+            static_cast<struct zxdg_decoration_manager_v1*>(wl_registry_bind(
+                wl_registry, name, &zxdg_decoration_manager_v1_interface, 1));
     } else if (!strcmp(interface, wl_seat_interface.name)) {
         seat_ = static_cast<struct wl_seat*>(
             wl_registry_bind(wl_registry, name, &wl_seat_interface, 1));
@@ -613,9 +665,16 @@ WaylandApplication::WaylandApplication() : mainLoopRunning_{false} {
         xdg_wm_base_get_xdg_surface(wm_base_, surface_);
     toplevel_ = xdg_surface_get_toplevel(xdg_surface);
 
+    toplevel_decoration_ = zxdg_decoration_manager_v1_get_toplevel_decoration(
+        decoration_manager_, toplevel_);
+    wl_display_roundtrip(display_);
+    request_preferred_mode();
+
     xdg_surface_add_listener(xdg_surface, &surface_listener_, nullptr);
     xdg_toplevel_add_listener(toplevel_, &toplevel_listener_, nullptr);
     xdg_toplevel_set_title(toplevel_, "terminal++");
+    zxdg_toplevel_decoration_v1_add_listener(
+        toplevel_decoration_, &toplevel_decoration_v1_listener_, nullptr);
 
     wl_surface_commit(surface_);
     wl_display_roundtrip(display_);

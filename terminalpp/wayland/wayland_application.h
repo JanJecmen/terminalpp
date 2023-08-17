@@ -77,8 +77,8 @@ class WaylandApplication : public Application {
 
     WaylandApplication();
 
-    struct wl_display* display_{nullptr};
-    struct wl_registry* registry_{nullptr};
+    struct wl_display* display_;
+    struct wl_registry* registry_;
 
     std::atomic<bool> mainLoopRunning_;
 

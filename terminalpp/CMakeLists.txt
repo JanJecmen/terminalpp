@@ -46,6 +46,9 @@ if(RENDERER_NATIVE)
             ecm_add_wayland_client_protocol(WAYLAND_PROTOCOL_SOURCES
                 PROTOCOL "${WaylandProtocols_DATADIR}/stable/xdg-shell/xdg-shell.xml"
                 BASENAME "xdg-shell")
+            ecm_add_wayland_client_protocol(WAYLAND_PROTOCOL_SOURCES
+                PROTOCOL "${WaylandProtocols_DATADIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml"
+                BASENAME "xdg-decoration")
             find_package(Freetype REQUIRED)
             include_directories(${Wayland_INCLUDE_DIRS})
             include_directories(${CMAKE_BINARY_DIR}/terminalpp)
