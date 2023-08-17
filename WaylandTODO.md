@@ -5,13 +5,13 @@
 - ~cmake wayland detection~
 - ~cmake build and link with wayland~
 - ~run a simple window under wayland without any text rendering~
-    - resizing
-    - decorations
-    - title
+    - ~resizing~
+    - ~decorations~
+    - ~title~
     - organize code into application / window hierarchy of tpp
 - figure out cleanup - destroy calls etc.
 - add text rendering
-- window decorations
+- client-side window decorations (for gnome etc.)
 - move rendering to gpu
 
 - add pacman (and maybe other - dnf, zypper) variants of the setup script
@@ -34,8 +34,10 @@ How to support both wayland and x11?
 
 ## Notes
 
-- is the destructor ever getting called of application?
+- is the destructor of application ever getting called?
 
 ## Sources
 
 - [example of c++ wayland client organization](https://gitlab.freedesktop.org/libdecor/libdecor/-/blob/master/demo/c%2B%2B-demo.cc)
+- [foot: great source for understanding wayland](https://codeberg.org/dnkl/foot/src/branch/master/wayland.c)
+- [decorations example](https://gitlab.freedesktop.org/wlroots/wlroots/-/blob/master/examples/toplevel-decoration.c)
