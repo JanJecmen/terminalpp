@@ -1,9 +1,8 @@
 #pragma once
 #if (defined ARCH_UNIX && defined RENDERER_NATIVE && defined DISPLAY_WAYLAND)
 
-#include "wayland.h"
-
 #include "../window.h"
+#include "wayland.h"
 #include "wayland_font.h"
 
 namespace tpp {
@@ -142,6 +141,20 @@ class WaylandWindow : public RendererWindow<WaylandWindow, wayland::Window> {
     //@}
 
     wayland::Window window_;
+
+  public:
+    struct SeatData {
+        struct wl_keyboard* keyboard;
+        struct wl_pointer* pointer;
+    };
+
+  private:
+    const wayland::WaylandDisplay& display_;
+    struct wl_surface* surface_;
+    struct xdg_surface* xdg_surface_;
+    struct xdg_toplevel* toplevel_;
+
+    SeatData seat_data_;
 
     WaylandFont* font_;
 

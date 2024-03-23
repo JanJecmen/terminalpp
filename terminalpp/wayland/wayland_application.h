@@ -15,7 +15,14 @@ class WaylandApplication : public Application {
     static void Initialize(int argc, char** argv) {
         MARK_AS_UNUSED(argc);
         MARK_AS_UNUSED(argv);
-        new WaylandApplication();
+        static bool initialized = false;
+        if (!initialized) {
+            initialized = true;
+            new WaylandApplication();
+        } else {
+            THROW(Exception())
+                << "Attempting to initialize WaylandApplication repeatedly";
+        }
     }
 
     static WaylandApplication* Instance() {
@@ -77,8 +84,7 @@ class WaylandApplication : public Application {
 
     WaylandApplication();
 
-    struct wl_display* display_;
-    struct wl_registry* registry_;
+    const wayland::WaylandDisplay& display_;
 
     std::atomic<bool> mainLoopRunning_;
 
